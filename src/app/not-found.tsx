@@ -13,7 +13,7 @@ export default function NotFound() {
         <p>Could not find requested resource</p>
         <Image
           className='rounded-lg'
-          src='/not-found.png'
+          src='/images/not-found.png'
           width={300}
           height={300}
           alt='Page Not Found Illustration'
