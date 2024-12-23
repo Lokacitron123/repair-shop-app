@@ -24,8 +24,8 @@ export function Header() {
         </div>
 
         <div className='flex items-center'>
-          <NavButton href='/tickets' label='Home' icon={File} />
-          <NavButton href='/customers' label='Home' icon={UsersRound} />
+          <NavButton href='/tickets' label='Tickets' icon={File} />
+          <NavButton href='/customers' label='Customers' icon={UsersRound} />
           <div className='ml-5'>
             <ModeToggle />
             <Button
