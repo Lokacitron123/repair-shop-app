@@ -4,6 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+
+import { useToast } from "@/hooks/use-toast";
 
 import { InputWithLabel } from "@/components/inputs/InputWithLabel";
 import { TextAreaWithLabel } from "@/components/inputs/TextAreaWithLabel";
@@ -15,7 +18,11 @@ import {
   type insertTicketSchemaType,
   type selectTicketSchemaType,
 } from "@/zod-schemas/ticket";
+
 import { selectCustomerSchemaType } from "@/zod-schemas/customer";
+import { useAction } from "next-safe-action/hooks";
+import { saveTicketAction } from "@/app/actions/saveTicketAction";
+import { DisplayServerActionResponse } from "@/components/DisplayServerActionResponse";
 
 type Props = {
   customer: selectCustomerSchemaType;
@@ -35,6 +42,8 @@ export default function TicketForm({
 }: Props) {
   const isManager = Array.isArray(techs);
 
+  const { toast } = useToast();
+
   const defaultValues: insertTicketSchemaType = {
     id: ticket?.id ?? "(New)",
     customerId: ticket?.customerId ?? customer.id,
@@ -50,13 +59,36 @@ export default function TicketForm({
     defaultValues,
   });
 
+  const {
+    execute: executeSave,
+    result: saveResult,
+    isPending: isSaving,
+    reset: resetSaveAction,
+  } = useAction(saveTicketAction, {
+    onSuccess({ data }) {
+      toast({
+        variant: "default",
+        title: "Success! 🎉",
+        description: data?.message,
+      });
+    },
+    onError({ error }) {
+      toast({
+        variant: "destructive",
+        title: "Error! ☹",
+        description: "Save failed",
+      });
+    },
+  });
+
   async function submitForm(data: insertTicketSchemaType) {
-    console.log(data);
+    executeSave(data);
   }
 
   return (
-    <div className='flex flex-col gap-1 sm:px-8'>
-      <div>
+    <div className='flex flex-col gap-1 sm:px-8 '>
+      <DisplayServerActionResponse result={saveResult} />
+      <div className=''>
         <h2 className='text-2xl font-bold'>
           {ticket?.id && isEditable
             ? `Edit Ticket # ${ticket.id}`
@@ -66,9 +98,9 @@ export default function TicketForm({
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(submitForm)}
-          className='flex flex-col md:flex-row gap-4 md:gap-8'
+          className='flex flex-col md:flex-row gap-4 md:gap-8  '
         >
-          <div className='flex flex-col gap-4 w-full max-w-xs'>
+          <div className='flex flex-col gap-4 w-full max-w-xs '>
             <InputWithLabel<insertTicketSchemaType>
               fieldTitle='Title'
               nameInSchema='title'
@@ -118,36 +150,45 @@ export default function TicketForm({
               <p>{customer.email}</p>
               <p>{customer.phone}</p>
             </div>
-
-            {/* Column 2 */}
-            <div className='flex flex-col gap-4 w-full max-w-xs'>
-              <TextAreaWithLabel<insertTicketSchemaType>
-                fieldTitle='Description'
-                nameInSchema='description'
-                className='h-96'
-                disabled={!isEditable}
-              />
-              {isEditable ? (
-                <div className='flex gap-2'>
-                  <Button
-                    type='submit'
-                    className='w-3/4'
-                    variant={"default"}
-                    title='Save'
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    type='button'
-                    variant={"destructive"}
-                    title='Reset'
-                    onClick={() => form.reset(defaultValues)}
-                  >
-                    Reset
-                  </Button>
-                </div>
-              ) : null}
-            </div>
+          </div>
+          {/* Column 2 */}
+          <div className='flex flex-col gap-4 w-full max-w-xs'>
+            <TextAreaWithLabel<insertTicketSchemaType>
+              fieldTitle='Description'
+              nameInSchema='description'
+              className='h-96'
+              disabled={!isEditable}
+            />
+            {isEditable ? (
+              <div className='flex gap-2'>
+                <Button
+                  type='submit'
+                  className='w-3/4'
+                  variant={"default"}
+                  title='Save'
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className='animate-spin' /> Saving
+                    </>
+                  ) : (
+                    "Save"
+                  )}
+                </Button>
+                <Button
+                  type='button'
+                  variant={"destructive"}
+                  title='Reset'
+                  onClick={() => {
+                    form.reset(defaultValues);
+                    resetSaveAction();
+                  }}
+                >
+                  Reset
+                </Button>
+              </div>
+            ) : null}
           </div>
         </form>
       </Form>

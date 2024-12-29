@@ -1,5 +1,5 @@
 {
-  "id": "630c61fb-d406-4f2e-abb8-43291d2bdf2b",
+  "id": "8703dabd-9aee-4812-81ab-393b84a3c604",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -58,19 +58,13 @@
         },
         "state": {
           "name": "state",
-          "type": "varchar(2)",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": true
         },
         "zip": {
           "name": "zip",
           "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "country": {
-          "name": "country",
-          "type": "varchar",
           "primaryKey": false,
           "notNull": true
         },

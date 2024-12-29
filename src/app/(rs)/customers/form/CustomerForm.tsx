@@ -21,6 +21,10 @@ import {
 } from "@/zod-schemas/customer";
 
 import { RegionsArray } from "@/constants/StatesArray";
+import { useAction } from "next-safe-action/hooks";
+import { saveCustomerAction } from "@/app/actions/saveCustomerACtion";
+import { useToast } from "@/hooks/use-toast";
+import { DisplayServerActionResponse } from "@/components/DisplayServerActionResponse";
 
 type Props = {
   customer?: selectCustomerSchemaType;
@@ -32,6 +36,8 @@ export default function CustomerForm({ customer }: Props) {
   const isManager = !isLoading && getPermission("manager")?.isGranted;
   // const permObj = getPermissions(); for checking different permissions
   // const isAuthorized = !isLoading && permOrb.permissions.some(perm => perm.name === "manager" || perm.name === "admin") // an array of permissions to check on the user
+
+  const { toast } = useToast();
 
   const defaultValues: insertCustomerSchemaType = {
     id: customer?.id ?? 0,
@@ -54,12 +60,37 @@ export default function CustomerForm({ customer }: Props) {
     defaultValues,
   });
 
+  const {
+    execute: executeSave,
+    result: saveResult,
+    isPending: isSaving,
+    reset: resetSaveAction,
+  } = useAction(saveCustomerAction, {
+    onSuccess({ data }) {
+      if (data?.message) {
+        toast({
+          variant: "default",
+          title: "Success! 🎉",
+          description: data?.message,
+        });
+      }
+    },
+    onError({ error }) {
+      toast({
+        variant: "destructive",
+        title: "Error! ☹",
+        description: "Save failed",
+      });
+    },
+  });
+
   async function submitForm(data: insertCustomerSchemaType) {
-    console.log(data);
+    executeSave(data);
   }
 
   return (
     <div className='flex flex-col gap-1 sm:px-8'>
+      <DisplayServerActionResponse result={saveResult} />
       <div>
         <h2 className='text-2xl font-bold'>
           {customer?.id ? "Edit" : "New"} Customer{" "}
@@ -137,14 +168,24 @@ export default function CustomerForm({ customer }: Props) {
                 className='w-3/4'
                 variant={"default"}
                 title='Save'
+                disabled={isSaving}
               >
-                Save
+                {isSaving ? (
+                  <>
+                    <Loader2 className='animate-spin' /> Saving{" "}
+                  </>
+                ) : (
+                  "Save"
+                )}
               </Button>
               <Button
                 type='button'
                 variant={"destructive"}
                 title='Reset'
-                onClick={() => form.reset(defaultValues)}
+                onClick={() => {
+                  form.reset(defaultValues);
+                  resetSaveAction();
+                }}
               >
                 Reset
               </Button>
