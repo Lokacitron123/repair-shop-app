@@ -19,7 +19,8 @@ export default async function getCustomerSearchResults(searchText: string) {
           customers.lastName
         })) LIKE ${`%${searchText.toLowerCase().replace(" ", "%")}%`}`
       )
-    );
+    )
+    .orderBy(customers.lastName);
 
   return results;
 }
