@@ -12,8 +12,6 @@ import { TextAreaWithLabel } from "@/components/inputs/TextAreaWithLabel";
 import { SelectWithLabel } from "@/components/inputs/SelectWithLabel";
 import { CheckboxWithLabel } from "@/components/inputs/CheckboxWithLabel";
 
-import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
-
 import {
   insertCustomerSchema,
   type insertCustomerSchemaType,
@@ -30,15 +28,14 @@ import { selectTicketSchemaType } from "@/zod-schemas/ticket";
 type Props = {
   customer?: selectCustomerSchemaType;
   tickets?: selectTicketSchemaType[];
+  isManager?: boolean | undefined;
 };
 
-export default function CustomerForm({ customer, tickets }: Props) {
-  const { getPermission, getPermissions, isLoading } = useKindeBrowserClient();
-
-  const isManager = !isLoading && getPermission("manager")?.isGranted;
-  // const permObj = getPermissions(); for checking different permissions
-  // const isAuthorized = !isLoading && permOrb.permissions.some(perm => perm.name === "manager" || perm.name === "admin") // an array of permissions to check on the user
-
+export default function CustomerForm({
+  customer,
+  tickets,
+  isManager = false,
+}: Props) {
   const { toast } = useToast();
 
   const defaultValues: insertCustomerSchemaType = {
@@ -91,8 +88,8 @@ export default function CustomerForm({ customer, tickets }: Props) {
   }
 
   return (
-    <div className='flex justify-between w-full'>
-      <div className='flex flex-col gap-1 sm:px-8'>
+    <div className='flex flex-col sm:flex-row justify-center w-full '>
+      <div className='flex flex-col  gap-1 mb-10 sm:mb-0 mx-4 sm:px-8  sm:w-2/3 '>
         <DisplayServerActionResponse result={saveResult} />
         <div>
           <h2 className='text-2xl font-bold'>
@@ -155,9 +152,7 @@ export default function CustomerForm({ customer, tickets }: Props) {
                 className='h-40'
               />
 
-              {isLoading ? (
-                <Loader2 className='animate-spin m-auto' />
-              ) : isManager ? (
+              {isManager && customer?.id ? (
                 <CheckboxWithLabel<insertCustomerSchemaType>
                   fieldTitle='Active'
                   nameInSchema='active'
@@ -197,7 +192,7 @@ export default function CustomerForm({ customer, tickets }: Props) {
           </form>
         </Form>
       </div>
-      <div className='flex flex-col gap-1 sm:px-8 '>
+      <div className='flex flex-col gap-1 sm:px-8 sm:w-1/3'>
         <h2 className='text-2xl font-bold'>Customer&apos;s Open Tickets</h2>
         <div className='flex flex-col gap-3'>
           {tickets?.length
