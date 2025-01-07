@@ -31,8 +31,9 @@ import {
   ArrowUp,
 } from "lucide-react";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
+import { usePolling } from "@/hooks/usePolling";
 import { TicketSearchResultsType } from "@/lib/queries/getTicketSearchResults";
 import { Button } from "@/components/ui/button";
 import Filter from "@/components/react-table/Filter";
@@ -45,6 +46,9 @@ type RowType = TicketSearchResultsType[0];
 
 export default function TicketTable({ data }: Props) {
   const router = useRouter();
+
+  const searchParams = useSearchParams();
+
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = useState<SortingState>([
     {
@@ -52,6 +56,9 @@ export default function TicketTable({ data }: Props) {
       desc: false, // falls for ascending
     },
   ]);
+
+  // Refreshes datatable - live updates
+  usePolling(searchParams.get("searchText"), 500000);
 
   const columnHeadersArray: Array<keyof RowType> = [
     "ticketDate",
@@ -63,7 +70,20 @@ export default function TicketTable({ data }: Props) {
     "completed",
   ];
 
+  const columnWidths = {
+    completed: 150,
+    ticketDate: 150,
+    title: 250,
+    tech: 150,
+    email: 250,
+  };
+
   const columnHelper = createColumnHelper<RowType>();
+
+  const pageIndex = useMemo(() => {
+    const page = searchParams.get("page");
+    return page ? parseInt(page) - 1 : 0;
+  }, [searchParams]);
 
   const columns = columnHeadersArray.map((columnName) => {
     return columnHelper.accessor(
@@ -87,6 +107,8 @@ export default function TicketTable({ data }: Props) {
 
       {
         id: columnName,
+        size:
+          columnWidths[columnName as keyof typeof columnWidths] ?? undefined,
         header: ({ column }) => {
           return (
             <Button
@@ -131,9 +153,11 @@ export default function TicketTable({ data }: Props) {
   const table = useReactTable({
     data,
     columns,
-    state: { columnFilters, sorting },
-    initialState: {
+    state: {
+      columnFilters,
+      sorting,
       pagination: {
+        pageIndex,
         pageSize: 10,
       },
     },
@@ -157,6 +181,10 @@ export default function TicketTable({ data }: Props) {
           Clear Sorting
           <X className=' h-4 w-4' />
         </Button>
+        <Button variant={"outline"} onClick={() => router.refresh()}>
+          Refresh Table
+          <X className=' h-4 w-4' />
+        </Button>
         <Button
           variant={"outline"}
           onClick={() => table.resetColumnFilters()}
@@ -172,7 +200,11 @@ export default function TicketTable({ data }: Props) {
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className='bg-secondary p-1'>
+                  <TableHead
+                    key={header.id}
+                    className='bg-secondary p-1'
+                    style={{ width: header.getSize() }}
+                  >
                     <div>
                       {header.isPlaceholder
                         ? null
@@ -183,7 +215,12 @@ export default function TicketTable({ data }: Props) {
                     </div>
                     {header.column.getCanFilter() ? (
                       <div className='grid place-content-center'>
-                        <Filter column={header.column} />
+                        <Filter
+                          column={header.column}
+                          filteredRows={table
+                            .getFilteredRowModel()
+                            .rows.map((row) => row.getValue(header.column.id))}
+                        />
                       </div>
                     ) : null}
                   </TableHead>
@@ -226,7 +263,13 @@ export default function TicketTable({ data }: Props) {
         <div className='space-x-1'>
           <Button
             variant={"outline"}
-            onClick={() => table.previousPage()}
+            onClick={() => {
+              const newIndex = table.getState().pagination.pageIndex - 1;
+              table.setPageIndex(newIndex);
+              const params = new URLSearchParams(searchParams.toString());
+              params.set("page", (newIndex + 1).toString());
+              router.replace(`?${params.toString()}`, { scroll: false });
+            }}
             disabled={!table.getCanPreviousPage()}
           >
             Previous
@@ -234,7 +277,13 @@ export default function TicketTable({ data }: Props) {
 
           <Button
             variant={"outline"}
-            onClick={() => table.nextPage()}
+            onClick={() => {
+              const newIndex = table.getState().pagination.pageIndex + 1;
+              table.setPageIndex(newIndex);
+              const params = new URLSearchParams(searchParams.toString());
+              params.set("page", (newIndex + 1).toString());
+              router.replace(`?${params.toString()}`, { scroll: false });
+            }}
             disabled={!table.getCanNextPage()}
           >
             Next
